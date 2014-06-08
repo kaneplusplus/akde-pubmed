@@ -1,30 +1,40 @@
 require(rCharts)
 require(httr)
 require(RJSONIO)
-require(ldatools)
+require(LDAtools)
 require(tm)
 require(xts)
 require(lubridate)
 
-nvd3viz <- function(proj_docs, cluster, titles) {
-  x <- as.data.frame(cbind(as.matrix(proj_docs), cluster))
-  names(x) <- c("PC1", "PC2", "group")
+source("dc.r")
 
-  nP <- nPlot(
-    PC2 ~ PC1,
-    group = "group",
-    data = x,
-    type = "scatterChart")
-  #nP$xAxis(tickFormat = "#!d3.format('.2%')!#")
-  #nP$yAxis(tickFormat = "#!d3.format('.2%')!#")
-  nP$chart(
-    showDistX = TRUE,
-    showDistY = TRUE,
-    tooltipContent = "#!function(key, y, e, graph) {
-                     return '<h3>Group: ' + key + '<br>' +
-                     graph.point.titles + '</a></h3>';
-                     }!#")
-  nP
+topic_viz <- function(docs, num_topics) {
+  fit <- run_lda(docs, num_topics)
+  doc.id <- fit@wordassignments$i
+  token.id <- fit@wordassignments$j
+  topic.id <- fit@wordassignments$v
+
+  #vocab <- fit@terms
+  assign("vocab", fit@terms, .GlobalEnv)
+
+  # Get the phi matrix using LDAviz
+  dat <- getProbs(token.id, doc.id, topic.id, vocab, K = max(topic.id), 
+                  sort.topics = "byTerms")
+  # phi <- t(dat$phi.hat)
+  assign("phi", t(dat$phi.hat), .GlobalEnv)
+
+  # term.frequency <- as.numeric(table(token.id))
+  assign("term.frequency", as.numeric(table(token.id)), .GlobalEnv)
+  topic.id <- dat$topic.id
+
+  #topic.proportion <- as.numeric(table(topic.id)/length(topic.id))
+  assign("topic.proportion", as.numeric(table(topic.id)/length(topic.id)),
+         .GlobalEnv)
+
+  # Run the visualization locally using LDAvis
+  z <- check.inputs(K=max(topic.id), W=max(token.id), phi, term.frequency, 
+                    vocab, topic.proportion)
+  runVis()
 }
 
 clean_up_date_string <- function(ds) {
@@ -136,11 +146,11 @@ get_docs_and_procs <- function(query, max_ids=Inf, verbose=FALSE) {
     if (verbose)
       cat("Docs and doc procs not found in Redis.\n")
     docs <- pm_query(query, max_ids, verbose=verbose)
-    doc_proc <- ldatools::preprocess(data=docs$title_and_abstract, 
+    doc_proc <- LDAtools::preprocess(data=docs$title_and_abstract, 
       stopwords=stopwords(), stem=TRUE)
     if (any(doc_proc$category != 0)) {
       docs <- docs[doc_proc$category == 0,]
-      doc_proc <- ldatools::preprocess(data=docs$title_and_abstract, 
+      doc_proc <- LDAtools::preprocess(data=docs$title_and_abstract, 
         stopwords=stopwords(), stem=TRUE)
     }
     redisSet(max_id_key, max_ids)
@@ -279,21 +289,19 @@ get_article_counts <- function(docs, resolution="months") {
 
 # A corpus-context summary shows the publication frequency and the associated
 # stemmed words.
-article_activity_ts <- function(query, max_ids, resolution="months", 
+# TODO: change this to use dimple
+plot_article_activity <- function(query, max_ids, resolution="years", 
                                 verbose=TRUE) {
+  if (resolution != "years")
+    stop("Resolutions other than years are not supported yet")
   docs <- pm_query(query, max_ids, verbose=verbose)
   article_counts <- get_article_counts(docs, resolution=resolution)
   # This is not right. The dates are being turned into integers. However,
   # I don't have an internet connection now to look up how to fix it.
-  article_counts$date <- strptime(article_counts$date, format="%Y-%m-%d")
-  nPlot(count ~ date, data=article_counts, type="lineChart")
-# The Google annotated timeline is close but not quite right. 
-#  ret <- gvisAnnotatedTimeLine(data=article_counts, datevar="date", 
-#                               numvar="count", date.format="%Y-%m-%d",
-#                               titlevar="title", annotationvar="annotation",
-#                               options=list(displayAnnotations=TRUE,
-#                                            legendPosition='newRow',
-#                                            width=800, height=400))
+  acdf <- as.data.frame(article_counts)
+
+  acdf$date <- year(time(article_counts))
+  nPlot(count ~ date, data=acdf, type="lineChart")
 }
 
 # A journal context summary shows the histogram frequency 
@@ -325,7 +333,8 @@ journal_hist <- function(query, max_ids, max_num_journals=10, verbose=FALSE,
                          width=20, truncate=FALSE) {
   docs <- pm_query(query, max_ids, verbose=verbose)
   d <- make_journal_table_data_frame(docs, max_num_journals, truncate=truncate)
-  nPlot(y="journal", x="count", data = d, type = 'discreteBarChart')
+  d$journal <- substr(d$journal, 1, 11)
+  nPlot(count ~ journal, data=d, type="discreteBarChart")
 }
 
 journal_article_activity_ts <- function(query, max_ids, max_num_journals, 

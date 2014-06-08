@@ -1,22 +1,20 @@
 library(tm)
-library(ldatools)
-library(LDAviz)
+library(LDAtools)
+library(LDAvis)
 library(Matrix)
 library(irlba)
 library(foreach)
+library(topicmodels)
 
-run_lda <- function(doc_proc, num_topics, num_iter=1000, ...) {
-  fit <- LDAviz::fitLDA(word.id=doc_proc$token.id, doc.id=doc_proc$doc.id, 
-                k=num_topics, n.iter=num_iter)
-  doc_prob <- LDAviz::getProbs(word.id=doc_proc$token.id, 
-                               doc.id=doc_proc$doc.id, topic.id=fit$topics, 
-                               vocab=doc_proc$vocab, sort.topics="byDocs", 
-                               K=num_topics)
-  doc_cluster <- data.frame(list(doc_id=unique(doc_proc$doc.id),
-                                 cluster=doc_prob$main.topic))
-  ret <- list("doc_cluster"=doc_cluster, "doc_proc"=doc_proc)
-  class(ret) <- "lda_cluster"
-  ret
+run_lda <- function(docs, num_topics) {
+  corpus <- Corpus(VectorSource(docs))
+  dtm <- DocumentTermMatrix(corpus, 
+                            control=list(stemming = TRUE, stopwords = TRUE, 
+                            minWordLength = 3, removeNumbers = TRUE, 
+                            removePunctuation = TRUE))
+  row_totals <- apply(dtm , 1, sum)
+  dtm <- dtm[row_totals> 0,]  
+  LDA(dtm, num_topics, method="Gibbs")
 }
 
 tfidf <- function(x, log.scale) {

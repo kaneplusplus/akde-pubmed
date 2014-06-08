@@ -84,7 +84,6 @@ pm_title_abstracts <- function(query, max_ids=Inf, verbose=FALSE,
   pm_doc_info(query, max_ids, verbose, chunkSize)$title_and_abstract
 }
 
-# It might be nice if this eventually included elasticsearch.
 init_pm_query_cache <- function(host="localhost", port=6379, 
                                 password=NULL, returnRef=FALSE, 
                                 nodelay=FALSE, timeout=2678399L,
@@ -95,34 +94,38 @@ init_pm_query_cache <- function(host="localhost", port=6379,
   options(expire_time=expire_time)
 }
 
-init_pm_query_cache()
-
-# The cached, query results.
 pm_query <- function(query, max_ids=Inf, verbose=FALSE, chunkSize=200) {
   ret <- NULL
-  # Does the query exist in Redis?
-  if (redisExists(query)) {
-    if (verbose)
-      cat("Query found in Redis\n")
-    # Are there at least max_ids in the query?
-    cached_obj <- redisGet(query)
-    if (cached_obj$max_ids >= max_ids) {
-      # The cached object is sufficient.
-      ret <- 
-        cached_obj$query_result[1:min(max_ids, nrow(cached_obj$query_result)),]
-    } else {
+  cache_exists <- try(
+    # Does the query exist in Redis?
+    if (redisExists(query)) {
       if (verbose)
-        cat("Redis did not have enough articles\n")
-    }
-  }
+        cat("Query found in Redis\n")
+      # Are there at least max_ids in the query?
+      cached_obj <- redisGet(query)
+      if (cached_obj$max_ids >= max_ids) {
+        # The cached object is sufficient.
+        ret <- cached_obj$query_result[1:min(max_ids, 
+                                       nrow(cached_obj$query_result)),]
+      } else {
+        if (verbose)
+          cat("Redis did not have enough articles\n")
+      }
+    }, silent=TRUE)
+  have_redis <- !inherits(cache_exists, "try-error")
   if (is.null(ret)) {
     # We need to hit Pubmed.
-    if (verbose)
-      cat("Query not found in Redis. Going to Pubmed...\n")
     ret <- pm_doc_info(query=query, max_ids=max_ids, verbose=verbose,
                        chunkSize=chunkSize)
-    redisSet(query, list(max_ids=max_ids, query_result=ret))
+    if (have_redis) {
+      if (verbose)
+        cat("Query not found in Redis. Going to Pubmed...\n")
+      redisSet(query, list(max_ids=max_ids, query_result=ret))
+    }
   }
-  redisExpireAt(query, as.integer(as.POSIXct(Sys.time())+options()$expire_time))
+  if (have_redis) {
+    redisExpireAt(query, 
+                  as.integer(as.POSIXct(Sys.time())+options()$expire_time))
+  }
   ret
 }
