@@ -326,19 +326,4 @@ makeDisplay(df_by_species,
             panelFn = proj_doc_panel_gen(),
             cogFn=proj_doc_cog_fun)
 
-#makeDisplay(df_by_journal,
-#            name="pcp_journal",
-#            group="Journal",
-#            width = 300, height = 300,
-#            desc = "Documents by Journal in PCP Space",
-#            panelFn = proj_doc_panel_gen(),
-#            cogFn=proj_doc_cog_fun)
-
-#makeDisplay(df_by_publication_type,
-#            name="pcp_publication_type",
-#            group="Publication Type",
-#            width = 300, height = 300,
-#            desc = "Documents by Publication Type in PCP Space",
-#            panelFn = proj_doc_panel_gen(),
-#            cogFn=proj_doc_cog_fun)
-
+view()
