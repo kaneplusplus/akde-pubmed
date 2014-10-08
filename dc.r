@@ -1,5 +1,5 @@
 library(tm)
-library(LDAtools)
+library(ldatools)
 library(LDAvis)
 library(Matrix)
 library(irlba)

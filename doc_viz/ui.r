@@ -14,8 +14,8 @@ shinyUI(pageWithSidebar(
   ),
   mainPanel(
     h3("Latent Dirichlet Allocation Topics"),
-    showOutput("lda_chart", "highcharts"),
-    h3("Latent Semantic Indexing Topics"),
+#    showOutput("lda_chart", "highcharts"),
+#    h3("Latent Semantic Indexing Topics"),
     showOutput("lsi_chart", "highcharts")
   )
 ))

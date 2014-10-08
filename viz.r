@@ -1,12 +1,19 @@
-require(rCharts)
-require(httr)
-require(RJSONIO)
-require(LDAtools)
-require(tm)
-require(xts)
-require(lubridate)
+library(rCharts)
+library(httr)
+library(RJSONIO)
+library(ldatools)
+library(tm)
+library(xts)
+library(lubridate)
+library(mallet)
 
-source("dc.r")
+#source("dc.r")
+
+# TODO: start here
+topic_view <- function(docs, num_topics) {
+  lda_fit <- run_lda(docs, num_topics)
+  
+}
 
 topic_viz <- function(docs, num_topics) {
   fit <- run_lda(docs, num_topics)
@@ -146,11 +153,11 @@ get_docs_and_procs <- function(query, max_ids=Inf, verbose=FALSE) {
     if (verbose)
       cat("Docs and doc procs not found in Redis.\n")
     docs <- pm_query(query, max_ids, verbose=verbose)
-    doc_proc <- LDAtools::preprocess(data=docs$title_and_abstract, 
+    doc_proc <- preprocess(data=docs$title_and_abstract, 
       stopwords=stopwords(), stem=TRUE)
     if (any(doc_proc$category != 0)) {
       docs <- docs[doc_proc$category == 0,]
-      doc_proc <- LDAtools::preprocess(data=docs$title_and_abstract, 
+      doc_proc <- preprocess(data=docs$title_and_abstract, 
         stopwords=stopwords(), stem=TRUE)
     }
     redisSet(max_id_key, max_ids)
