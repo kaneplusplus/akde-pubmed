@@ -9,12 +9,6 @@ library(mallet)
 
 #source("dc.r")
 
-# TODO: start here
-topic_view <- function(docs, num_topics) {
-  lda_fit <- run_lda(docs, num_topics)
-  
-}
-
 topic_viz <- function(docs, num_topics) {
   fit <- run_lda(docs, num_topics)
   doc.id <- fit@wordassignments$i

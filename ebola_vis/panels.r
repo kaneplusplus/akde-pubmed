@@ -1,6 +1,6 @@
 library(rCharts)
 
-scatter_plot_with_url <- function(form, x, xlab, ylab, color=NULL) {
+scatter_plot_with_url2 <- function(form, x, xlab, ylab, color=NULL) {
   char_form = as.character(form)
   tmp <- x[,c(char_form[-1], "title_short", "author", "date_string_clean", 
     "journal_short", color, "url")]
@@ -43,5 +43,58 @@ scatter_plot_with_url <- function(form, x, xlab, ylab, color=NULL) {
     </script>    
   ")
   p
+}
+
+scatter_plot_with_url = function(data, x_name="x", y_name="y", by=NULL, xlab="",
+                           ylab="", title="",
+                           legend_title="", subtitle="") {
+  names(data)[match(c(x_name, y_name), names(data))] <- c("x", "y")
+
+  if (is.null(by)) {
+    data$all = as.factor(1)
+    by = "all"
+  }
+  data_list <- lapply(split(data, data[,by]), function(x) {
+    res <- lapply(split(x, rownames(x)), as.list)
+    names(res) <- NULL
+    res
+  })
+
+  viz <- rCharts::Highcharts$new()
+  invisible(sapply(data_list, function(x) {
+      apply_cat <- eval(parse(text=paste("x[[1]]$", by, sep="")))
+      viz$series(data=x, type="scatter", name=apply_cat)
+    }))
+
+  viz$plotOptions(
+    scatter = list(
+      cursor = "pointer",
+      point = list(
+        events = list(
+          click = "#! function() { window.open(this.options.url); } !#")),
+      marker = list(
+        symbol = "circle",
+        radius = 5
+      )
+    )
+  )
+
+  viz$xAxis(title = list(text=xlab),
+    labels = list(format="{value} "))
+  viz$yAxis(title = list(text=ylab),
+    labels = list(format="{value} "))
+  viz$tooltip(useHTML=TRUE,
+    formatter="#! function() { return this.point.html_caption; } !#")
+
+  viz$legend(
+    align = 'right',
+    verticalAlign = 'middle',
+    layout = 'vertical',
+    title = list(text=legend_title)
+  )
+  viz$title(text=title)
+  viz$subtitle(text=subtitle)
+  #viz$chart( zoomType = 'xy' )
+  viz
 }
 

@@ -1,6 +1,7 @@
 library(rentrez)
 library(XML)
 library(lubridate)
+library(foreach)
 
 get_author_list <- function(element) {
   lasts <- xmlSApply(getNodeSet(element, ".//AuthorList//Author//Lastname"),
@@ -38,6 +39,17 @@ clean_up_entries <- function(entries, max_lines=3, width=30) {
   }
 }
 
+create_html_caption <- function(doc_title, author, date, journal) {
+  str <- paste("<b>%s</b><table>",
+    "<tr><td align='left'><b>Author:</b></td><td>%s</td></tr>",
+    "<td align='left'><b>Date:</b></td><td>%s</td></tr>",
+    "<td align='left'><b>Journal:</b></td><td>%s</td></tr></table>")
+  sprintf(str,
+    clean_up_entries(doc_title, width=40),
+    clean_up_entries(author),
+    clean_up_date_string(date),
+    clean_up_entries(journal))
+}
 
 make_date_time = function(date_strings, resolution="months") {
   date_matrix <- matrix(unlist(strsplit(date_strings, " ")), ncol=3, 
@@ -46,16 +58,17 @@ make_date_time = function(date_strings, resolution="months") {
     date_matrix[,2] <- "1"
   } else if (resolution == "years") {
     date_matrix[,1] <- "Jan"
-  } else if (resolution != "days") {
-    stop("Unsupported time resolution")
-  }
+    date_matrix[,2] = "1"
+  } #else if (resolution != "days") {
+  #  stop("Unsupported time resolution")
+  #}
   date_strings <- apply(date_matrix, 1, paste, collapse=" ")
   d <- strptime(date_strings, format="%b %d %Y", tz="GMT")
 
-  if (resolution == "years")
-    d <- d + years(1) - days(1)
-  if (resolution == "months")
-    d <- d + months(1) - days(1)
+#  if (resolution == "years")
+#    d <- d + years(1) - days(1)
+#  if (resolution == "months")
+#    d <- d + months(1) - days(1)
   d
 }
 
@@ -78,47 +91,77 @@ get_date <- function(element) {
   paste(month, day, year)
 }
 
-
-data_frame_from_entrez <- function(term) {
-  term_search <- entrez_search(db="pubmed", term=term)
-  term_fetch <- entrez_fetch(db="pubmed", id=term_search$ids, rettype="XML")
-  doc <- xmlParse(term_fetch)
-  foreach(element=getNodeSet(doc, "//PubmedArticle"), id=term_search$ids,
-          .combine=rbind) %do% {
-    url <- paste("http://www.ncbi.nlm.nih.gov/pubmed/?term=",
-      id, "%5Buid%5D", sep="")
-    abstract <- xmlSApply(getNodeSet(element, ".//AbstractText"), xmlValue)
-    if (length(abstract) > 1)
-      abstract <- paste(abstract, collapse=" ")
-    if (length(abstract) < 1)
-      abstract=""
-    title <- xmlSApply(getNodeSet(element, ".//ArticleTitle"), xmlValue)
-    if (length(title) > 1)
-      title <- paste(title, collapse=" ")
-    # We'll only take articles with titles and abstracts.
-    title_and_abstract <- ""
-    if (length(abstract) > 0 && length(title) > 0)
-      title_and_abstract <- paste(title, abstract)
-    author <- get_author_list(element)
-    publication_type <- get_publication_type(element)
-    journal <- get_journal(element)
-    date_string <- get_date(element)
-    data.frame(list(id=id, title=title, author=author, date_string=date_string, 
-      abstract=abstract, journal=journal, publication_type=publication_type, 
-      url=url, title_and_abstract=title_and_abstract), stringsAsFactors=FALSE)
+data_frame_from_entrez <- function(term, max_docs=Inf, verbose=FALSE, 
+    chunk_size=500) {
+  term_search <- entrez_search(db="pubmed", term=term, retmax=max_docs)
+  term_search$count = as.numeric(term_search$count)
+  if (verbose) {
+    cat("Query: ", term, "\n", sep="")
+    cat("Total documents returned by query: ", term_search$count, "\n",
+        sep="")
+    cat("Number of documents to fetch: ", min(term_search$count, max_docs),
+        "\n", sep="")
   }
+  ret = foreach (it=isplitIndices(min(term_search$count, max_docs), 
+      chunkSize=chunk_size), .combine=rbind) %dopar% {
+    if (verbose) {
+      cat(paste("Fetching documents: ", it[1], ":", it[length(it)], "\n", 
+                sep=""))
+    }
+    term_fetch <- entrez_fetch(db="pubmed", id=term_search$ids, rettype="XML")
+    doc <- xmlParse(term_fetch)
+    foreach(element=getNodeSet(doc, "//PubmedArticle"), id=term_search$ids,
+            .combine=rbind) %do% {
+      url <- paste("http://www.ncbi.nlm.nih.gov/pubmed/?term=",
+        id, "%5Buid%5D", sep="")
+      abstract <- xmlSApply(getNodeSet(element, ".//AbstractText"), xmlValue)
+      if (length(abstract) > 1)
+        abstract <- paste(abstract, collapse=" ")
+      if (length(abstract) < 1)
+        abstract=""
+      title <- xmlSApply(getNodeSet(element, ".//ArticleTitle"), xmlValue)
+      if (length(title) > 1)
+        title <- paste(title, collapse=" ")
+      # We'll only take articles with titles and abstracts.
+      title_and_abstract <- ""
+      if (length(abstract) > 0 && length(title) > 0)
+        title_and_abstract <- paste(title, abstract)
+      author <- get_author_list(element)
+      publication_type <- get_publication_type(element)
+      journal <- get_journal(element)
+      date_string <- get_date(element)
+      data.frame(list(id=id, title=title, author=author, 
+        date_string=date_string, abstract=abstract, journal=journal, 
+        publication_type=publication_type, url=url, 
+        title_and_abstract=title_and_abstract), stringsAsFactors=FALSE)
+    }
+  }
+  if (verbose)
+    cat("\n")
+  ret
 }
 
-create_pm_query_df = function(queries, label_name, labels=NULL) {
-  if (is.null(labels))
-    labels = queries
-  if (length(labels) != length(queries))
-    stop("Queries and query labels must be the same length")
-  foreach(i=1:length(queries), .combine=rbind) %do% { 
-    df = data_frame_from_entrez(queries[i])
-    df[[label_name]] = labels[i]
-    df
+create_pm_query_df = function(queries, label_name, labels=NULL, verbose=TRUE,
+  max_docs_per_query=100) {
+  ret = NULL
+  if (length(queries) > 1) {
+    if (is.null(labels))
+      labels = queries
+    if (length(labels) != length(queries))
+      stop("Queries and query labels must be the same length")
+    ret = foreach(i=1:length(queries), .combine=rbind) %do% { 
+      df = data_frame_from_entrez(queries[i], max_docs=max_docs_per_query,
+        verbose=verbose)
+      df[[label_name]] = labels[i]
+      df
+    }
+  } else {
+    ret = data_frame_from_entrez(queries, max_docs=max_docs_per_query,
+      verbose=verbose)
   }
+  ret$html_caption = create_html_caption(ret$title, ret$author, 
+    clean_up_date_string(ret$date_string), ret$journal)
+  ret
 }
 
 multiple_inds = function(x) {
