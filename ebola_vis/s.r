@@ -9,14 +9,14 @@ source("panels.r")
 
 registerDoSEQ()
 
-queries =c("ebola AND monkey", 
-           "ebola AND bats", 
-           "ebola AND rodent", 
-           "ebola AND dog", 
-           "ebola AND pig", 
-           "ebola AND human", 
-           "ebola AND gorilla",
-           "ebola AND chimpanzee")
+queries =c("ebola outbreak AND monkey", 
+           "ebola outbreak AND bats", 
+           "ebola outbreak AND rodent", 
+           "ebola outbreak AND dog", 
+           "ebola outbreak AND pig", 
+           "ebola outbreak AND human", 
+           "ebola outbreak AND gorilla",
+           "ebola outbreak AND chimpanzee")
 label_name = "species"
 labels = c("monkey", "bat", "rodent", "dog", "pig", 
       "human", "gorilla", "chimpanzee")
@@ -44,17 +44,25 @@ proj_doc_panel_gen = function(color=NULL) {
   color=color
   function(x) { 
     ret = NULL
-    if (nrow(x) > 1) {
+    if (nrow(x) > 2) {
       pd = project_into_document_space(x$title_and_abstract, components, 
         jitter=TRUE)
       components=1:2
       x = cbind(x[rownames(pd),], as.matrix(pd))
       names(x)[tail(1:ncol(x), length(components))] = 
         paste("pc", components, sep="")
-      #plot(x$pc1, x$pc2, col=as.factor(x$species))
       ret = scatter_plot_with_url(x, x_name="pc1", y_name="pc2", by=color)
-      #ret = scatter_plot_with_url(pc2 ~ pc1, x, xlab="pc1", ylab="pc2", 
-      #  color=color)
+    } else if (nrow(x) == 2) {
+      x$pc1 = c(-0.5, 0.5)
+      x$pc2 = c(-0.5, 0.5)
+      ret = scatter_plot_with_url(x, x_name="pc1", y_name="pc2", by=color)
+    } else if (nrow(x) == 1) {
+      x$pc1 = 0;
+      x$pc2 = 0
+      ret = scatter_plot_with_url(x, x_name="pc1", y_name="pc2", by=color)
+    } else {
+      print(x)
+      stop("Problem with input")
     }
     ret
   }
@@ -108,13 +116,13 @@ makeDisplay(df_by_species,
             panelFn = proj_doc_panel_gen(),
             cogFn=proj_doc_cog_fun)
 
-makeDisplay(df_by_journal,
-            name="pcp_journal",
-            group="Journal",
-            width = 300, height = 300,
-            desc = "Documents by Journal in PCP Space",
-            panelFn = proj_doc_panel_gen(),
-            cogFn=proj_doc_cog_fun)
+#makeDisplay(df_by_journal,
+#            name="pcp_journal",
+#            group="Journal",
+#            width = 300, height = 300,
+#            desc = "Documents by Journal in PCP Space",
+#            panelFn = proj_doc_panel_gen(),
+#            cogFn=proj_doc_cog_fun)
 
 makeDisplay(df_by_journal,
             name="pcp_species_by_journal",
