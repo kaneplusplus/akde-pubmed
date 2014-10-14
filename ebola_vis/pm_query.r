@@ -127,9 +127,17 @@ data_frame_from_entrez <- function(term, max_docs=Inf, verbose=FALSE,
       if (length(abstract) > 0 && length(title) > 0)
         title_and_abstract <- paste(title, abstract)
       author <- get_author_list(element)
+      if (length(author) == 0)
+        author=""
       publication_type <- get_publication_type(element)
+      if (length(publication_type) == 0)
+        publication_type = "Unknown"
       journal <- get_journal(element)
+      if (length(journal))
+        journal="Unknown"
       date_string <- get_date(element)
+      if (length(date_string) == 0)
+        date_string = "NULL NULL NULL"
       data.frame(list(id=id, title=title, author=author, 
         date_string=date_string, abstract=abstract, journal=journal, 
         publication_type=publication_type, url=url, 
@@ -149,18 +157,22 @@ create_pm_query_df = function(queries, label_name, labels=NULL, verbose=TRUE,
       labels = queries
     if (length(labels) != length(queries))
       stop("Queries and query labels must be the same length")
-    ret = foreach(i=1:length(queries), .combine=rbind) %do% { 
+    ret = foreach(i=1:length(queries)) %do% { 
       df = data_frame_from_entrez(queries[i], max_docs=max_docs_per_query,
         verbose=verbose)
-      df[[label_name]] = labels[i]
+      eval(parse(text=paste("df$", label_name, " = '", labels[i], "'", sep="")))
       df
     }
+    these = unlist(lapply(ret, function(x) !is.null(nrow(x))))
+    ret = Reduce(rbind, ret[these])
   } else {
     ret = data_frame_from_entrez(queries, max_docs=max_docs_per_query,
       verbose=verbose)
   }
-  ret$html_caption = create_html_caption(ret$title, ret$author, 
-    clean_up_date_string(ret$date_string), ret$journal)
+  if(!is.null(ret) > 0) {
+    ret$html_caption = create_html_caption(ret$title, ret$author, 
+      clean_up_date_string(ret$date_string), ret$journal)
+  }
   ret
 }
 
