@@ -1,5 +1,6 @@
 library(rCharts)
 
+# This is currently unused but being kept for reference.
 scatter_plot_with_url2 <- function(form, x, xlab, ylab, color=NULL) {
   char_form = as.character(form)
   tmp <- x[,c(char_form[-1], "title_short", "author", "date_string_clean", 
@@ -98,3 +99,17 @@ scatter_plot_with_url = function(data, x_name="x", y_name="y", by=NULL, xlab="",
   viz
 }
 
+ts_plot_gen = function(form) {
+  form=form
+  function(x) {
+    nPlot(form, data=x, type="lineChart")
+  }
+}
+
+group_ts_plot_gen = function(form, group) {
+  form=form
+  group=group
+  function(x) {
+    nPlot(form, data=x, group=group, type="lineChart")
+  }
+}

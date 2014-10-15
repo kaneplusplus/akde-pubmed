@@ -27,7 +27,7 @@ label_name = "species"
 labels = c("monkey", "bat", "rodent", "dog", "pig", 
            "human", "gorilla", "chimpanzee")
 
-Sindura = TRUE
+Sindura = FALSE
 if (Sindura) {
   queries =c('growth AND ("environmental enteropathy" OR scours) AND pig', 
              'growth AND ("environmental enteropathy" OR scours) AND mouse', 
@@ -43,9 +43,9 @@ if (Sindura) {
 }
 cat("Querying PubMed.\n")
 df = create_pm_query_df(queries, label_name, labels)
-df$species[multiple_inds(df$id)] = "multiple"
+df[[label_name]][multiple_inds(df$id)] = "multiple"
 df = df[!duplicated(df$id),]
-df$species = as.factor(df$species)
+df[[label_name]] = as.factor(df[[label_name]])
 df$year = year(make_date_time(df$date_string, "years"))
 df$month = month(make_date_time(df$date_string, "month"))
 df$day = day(make_date_time(df$date_string, "day"))
@@ -54,9 +54,11 @@ vdbConn("ebola_zoonosis", name="Ebola Zoonosis")
 
 df$all = as.factor(1)
 df_by_all = divide(df, by="all", update=TRUE)
-df_by_species = divide(df, by="species", update=TRUE)
+df_by_label = divide(df, by=label_name, update=TRUE)
 df_by_journal = divide(df, by="journal", update=TRUE)
 df_by_publication_type = divide(df, by="publication_type", update=TRUE)
+
+df_ts = 
 
 # Not sure why this dies.
 df_by_year = try({divide(df, by="year", update=TRUE)}, silent=TRUE)
@@ -101,55 +103,56 @@ proj_doc_cog_fun = function(x) {
   list(num_documents=cog(nrow(x), desc="Number of documents"))
 }
 
-doc_count_panel_gen = function(resolution="years", group=NULL) {
-  resolution=resolution
-  group=group
-  function(x) {
-    group_labeled=TRUE
-    if (is.null(group)) {
-      group_labeled=FALSE
-      group = "group"
-      x[[group]] = 1
-    }
+create_ac_ts = function(x, resolution="years", group=NULL) {
+  if (resolution == "years") {
+    pub_years = na.omit(unique(x$year))
+    all_years = min(pub_years):max(pub_years)
+  }
+  foreach(g = unique(x[[group]]), .combine=rbind) %do% {
+    ac = get_article_counts(x[x[[group]] == g,], resolution)
+    acdf = as.data.frame(ac)
+    res = NULL
+    # TODO: Create x axis values from the 
+    if (resolution != "years")
+      stop("Only year resolutions are supported so far.")
     if (resolution == "years") {
-      pub_years = na.omit(unique(x$year))
-      all_years = min(pub_years):max(pub_years)
+      acdf$date = year(time(ac))
+      zero_years = setdiff(all_years, acdf$date)
+      acdf = rbind(acdf, 
+        data.frame(date=zero_years, count=rep(0, length(zero_years))))
     }
-    df = foreach(g = unique(x[[group]]), .combine=rbind) %do% {
-      ac = get_article_counts(x[x[[group]] == g,], resolution)
-      acdf = as.data.frame(ac)
-      res = NULL
-      # TODO: Create x axis values from the 
-      if (resolution != "years")
-        stop("Only year resolutions are supported so far.")
-      if (resolution == "years") {
-        acdf$date = year(time(ac))
-        zero_years = setdiff(all_years, acdf$date)
-        acdf = rbind(acdf, 
-          data.frame(date=zero_years, count=rep(0, length(zero_years))))
-      }
-      acdf = acdf[order(acdf$date),]
-      acdf[[group]] = g
-      acdf
-    }
-    if (!group_labeled)
-      res = nPlot( count ~ date, data=df, type="lineChart")
-    else
-      res = nPlot( count ~ date, data=df, group=group, type="lineChart")
-    res
+    acdf = acdf[order(acdf$date),]
+    acdf[[group]] = g
+    acdf
   }
 }
 
+ts_df = create_ac_ts(df, group=label_name)
+ts_df$all = 1
+ts_year_by_all = divide(ts_df, by="all", update=TRUE)
+ts_year_by_species = divide(ts_df, by="species", update=TRUE)
+
+#    if (!group_labeled) {
+#      print('here')
+#      res = nPlot( count ~ date, data=df, type="lineChart")
+#    } else {
+#      print('here')
+#      res = nPlot( count ~ date, data=df, group=group, type="lineChart")
+#    }
+#    res
+#  }
+#}
+
 makeDisplay(df_by_all,
-            name="pcp_species_all",
+            name=paste("pcp", label_name, "all", sep="_"),
             group="All",
             width = 400, height = 300,
             desc = "Documents and Species in PCP Space",
-            panelFn = proj_doc_panel_gen(color="species"),
+            panelFn = proj_doc_panel_gen(color=label_name),
             cogFn=proj_doc_cog_fun)
 
-makeDisplay(df_by_species,
-            name="pcp_species",
+makeDisplay(df_by_label,
+            name=paste("pcp", label_name, sep="_"),
             group="Species",
             width = 400, height = 300,
             desc = "Documents by Species in PCP Space",
@@ -157,33 +160,40 @@ makeDisplay(df_by_species,
             cogFn=proj_doc_cog_fun)
 
 makeDisplay(df_by_journal,
-            name="pcp_species_by_journal",
+            name=paste("pcp", label_name, "by_journal", sep="_"),
             group="Journal",
             width = 400, height = 300,
             desc = "Documents by Journal in PCP Space",
-            panelFn = proj_doc_panel_gen("species"),
+            panelFn = proj_doc_panel_gen(label_name),
             cogFn=proj_doc_cog_fun)
       
 makeDisplay(df_by_publication_type,
-            name="pcp_species_by_publication_type",
+            name=paste("pcp", label_name, "by_publication_type", sep="_"),
             group="Documents and Species by Publication Type",
             width = 400, height = 300,
             desc = "Documents by Publication Type in PCP Space",
-            panelFn = proj_doc_panel_gen("species"),
+            panelFn = proj_doc_panel_gen(label_name),
             cogFn=proj_doc_cog_fun)
 
 makeDisplay(df_by_year,
-            name="pcp_species_by_publication_Year",
+            name=paste("pcp", label_name, "by_publication_year", sep="_"),
             group="Documents and Species by Publication Year",
             width = 400, height = 300,
             desc = "Documents and Species by Year",
-            panelFn = proj_doc_panel_gen("species"),
+            panelFn = proj_doc_panel_gen(label_name),
             cogFn=proj_doc_cog_fun)
 
-makeDisplay(df_by_all,
-            name="ts_species_all",
+makeDisplay(ts_year_by_all,
+            name=paste("ts", label_name, "all", sep="_"),
             group="All",
             width=400, height=300,
             desc = "Publication Activity by Year",
-            panelFn = doc_count_panel_gen(resolution="years", group="species"))
+            panelFn = group_ts_plot_gen(count ~ date, group="species"))
+
+makeDisplay(ts_year_by_species,
+            name=paste("ts", label_name, "by_species", sep="_"),
+            group="All",
+            width=400, height=300,
+            desc = "Publication Activity and Species by Year",
+            panelFn = ts_plot_gen(count ~ date))
 
