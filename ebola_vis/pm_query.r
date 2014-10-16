@@ -133,7 +133,7 @@ data_frame_from_entrez <- function(term, max_docs=Inf, verbose=FALSE,
       if (length(publication_type) == 0)
         publication_type = "Unknown"
       journal <- get_journal(element)
-      if (length(journal))
+      if (length(journal) == 0)
         journal="Unknown"
       date_string <- get_date(element)
       if (length(date_string) == 0)

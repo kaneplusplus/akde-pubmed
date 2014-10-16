@@ -132,17 +132,6 @@ ts_df$all = 1
 ts_year_by_all = divide(ts_df, by="all", update=TRUE)
 ts_year_by_species = divide(ts_df, by="species", update=TRUE)
 
-#    if (!group_labeled) {
-#      print('here')
-#      res = nPlot( count ~ date, data=df, type="lineChart")
-#    } else {
-#      print('here')
-#      res = nPlot( count ~ date, data=df, group=group, type="lineChart")
-#    }
-#    res
-#  }
-#}
-
 makeDisplay(df_by_all,
             name=paste("pcp", label_name, "all", sep="_"),
             group="All",
