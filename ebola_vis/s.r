@@ -58,8 +58,6 @@ df_by_label = divide(df, by=label_name, update=TRUE)
 df_by_journal = divide(df, by="journal", update=TRUE)
 df_by_publication_type = divide(df, by="publication_type", update=TRUE)
 
-df_ts = 
-
 # Not sure why this dies.
 df_by_year = try({divide(df, by="year", update=TRUE)}, silent=TRUE)
 # and why the following works.
@@ -101,30 +99,6 @@ proj_doc_panel_gen = function(color=NULL) {
 
 proj_doc_cog_fun = function(x) {
   list(num_documents=cog(nrow(x), desc="Number of documents"))
-}
-
-create_ac_ts = function(x, resolution="years", group=NULL) {
-  if (resolution == "years") {
-    pub_years = na.omit(unique(x$year))
-    all_years = min(pub_years):max(pub_years)
-  }
-  foreach(g = unique(x[[group]]), .combine=rbind) %do% {
-    ac = get_article_counts(x[x[[group]] == g,], resolution)
-    acdf = as.data.frame(ac)
-    res = NULL
-    # TODO: Create x axis values from the 
-    if (resolution != "years")
-      stop("Only year resolutions are supported so far.")
-    if (resolution == "years") {
-      acdf$date = year(time(ac))
-      zero_years = setdiff(all_years, acdf$date)
-      acdf = rbind(acdf, 
-        data.frame(date=zero_years, count=rep(0, length(zero_years))))
-    }
-    acdf = acdf[order(acdf$date),]
-    acdf[[group]] = g
-    acdf
-  }
 }
 
 ts_df = create_ac_ts(df, group=label_name)

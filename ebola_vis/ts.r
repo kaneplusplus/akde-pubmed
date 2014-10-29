@@ -1,4 +1,5 @@
 library(xts)
+library(foreach)
 
 # TODO: this is messed up.
 get_article_counts <- function(x, resolution="years") {
@@ -41,5 +42,29 @@ get_article_counts <- function(x, resolution="years") {
     warning("Dates could not be resolved at specified resolution")
   }
   ret
+}
+
+create_ac_ts = function(x, resolution="years", group=NULL) {
+  if (resolution == "years") {
+    pub_years = na.omit(unique(x$year))
+    all_years = min(pub_years):max(pub_years)
+  }
+  foreach(g = unique(x[[group]]), .combine=rbind) %do% {
+    ac = get_article_counts(x[x[[group]] == g,], resolution)
+    acdf = as.data.frame(ac)
+    res = NULL
+    # TODO: Create x axis values from the 
+    if (resolution != "years")
+      stop("Only year resolutions are supported so far.")
+    if (resolution == "years") {
+      acdf$date = year(time(ac))
+      zero_years = setdiff(all_years, acdf$date)
+      acdf = rbind(acdf, 
+        data.frame(date=zero_years, count=rep(0, length(zero_years))))
+    }
+    acdf = acdf[order(acdf$date),]
+    acdf[[group]] = g
+    acdf
+  }
 }
 

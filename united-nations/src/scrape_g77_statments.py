@@ -19,7 +19,8 @@ def get_text(browser, href):
   browser.get(href)
   text_parts = browser.find_elements_by_xpath('//p')
   body = u" ".join([e.text for e in text_parts]).replace(u",", u" ")
-  body = u" ".join(body.splitlines)
+  body = body.replace(u'"', u"")
+  body = u" ".join(body.splitlines())
   return(body)
 
 # Grab the date from the speech or statement url.
