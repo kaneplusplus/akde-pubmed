@@ -28,20 +28,20 @@ for url in urls:
   browser.get(url)
   done = False
   links = []
-  while not done:
-  print("Getting data from " + browser.current_url + "\n")
-  elem=browser.find_elements_by_xpath('//ul//li[@class="pager-next last"]//a')
-  if len(elem) > 0: 
-    next_link = elem[0].get_attribute("href")
-    elem = browser.find_elements_by_xpath('//ul//li[@class="pager-current"]')
-    if elem[0].text == u'Page 0' or if elem[0].text == u'':
+    while not done:
+    print("Getting data from " + browser.current_url + "\n")
+    elem=browser.find_elements_by_xpath('//ul//li[@class="pager-next last"]//a')
+    if len(elem) > 0: 
+      next_link = elem[0].get_attribute("href")
+      elem = browser.find_elements_by_xpath('//ul//li[@class="pager-current"]')
+      if elem[0].text == u'Page 0' or if elem[0].text == u'':
+        done=True
+    else:
       done=True
-  else:
-    done=True
-  link_elems = browser.find_elements_by_xpath('//div//span//a') 
-  links += [x.get_attribute("href") for x in link_elems]
-  if not done:
-    browser.get(next_link)
+    link_elems = browser.find_elements_by_xpath('//div//span//a') 
+    links += [x.get_attribute("href") for x in link_elems]
+    if not done:
+      browser.get(next_link)
 
 f = codecs.open("../data/" + group + ".csv", "w", "utf-8")
 for link in links:
