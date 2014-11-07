@@ -76,3 +76,4 @@ shorten_names = function(n) {
 }
 
 source("volume.r")
+source("novelty.r")

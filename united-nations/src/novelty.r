@@ -28,6 +28,20 @@ year_novelties = foreach(type = unique(y$type), .combine=rbind) %dopar% {
 year_novelties = year_novelties[order(year_novelties$year),]
 nPlot(novelty ~ year, data=year_novelties, group="type", type="multiBarChart")
 
+nby = function(x) {
+  nPlot(novelty ~ year, data=x, group="type", type="multiBarChart")
+}
+
+year_novelties$all = factor(1)
+novelty_by_year_all = divide(year_novelties, by="all", update=TRUE)
+
+makeDisplay(novelty_by_year_all,
+            name="novelty_by_year",
+            group="Yearly",
+            width=350, height=200,
+            desc="Media Novelty by Year",
+            panelFn= nby)
+
 year_months = sort(unique(y$year.month))
 month_novelties = foreach(type = unique(y$type), .combine=rbind) %dopar% {
   ret = foreach (i=2:length(year_months), .combine=rbind) %do% {
@@ -72,7 +86,27 @@ month_novelties = month_novelties[order(month_novelties$type),]
 month_novelties = month_novelties[order(month_novelties$year.month),]
 row.names(month_novelties) = NULL
 
-nPlot(novelty ~ year.month, data=month_novelties, group="type", 
-      type="multiBarChart")
+nbym = function(x) {
+  nPlot(novelty ~ year.month, data=x, group="type", type="multiBarChart")
+}
+
+month_novelties$all = factor(1)
+novelty_by_month_all = divide(month_novelties, by="all", update=TRUE)
+makeDisplay(novelty_by_month_all,
+            name="novelty_by_month",
+            group="Yearly",
+            width=350, height=200,
+            desc="Media Novelty by Month",
+            panelFn= nbym)
+
+# TODO: Add cognostics.
+month_novelties$ym_copy = month_novelties$year.month
+novelty_by_month = divide(month_novelties, by="ym_copy", update=TRUE)
+makeDisplay(novelty_by_month,
+            name="novelty_by_month",
+            group="Monthly",
+            width=350, height=200,
+            desc="Media Novelty by Month",
+            panelFn= nbym)
 
 
