@@ -3,6 +3,7 @@ library(datadr)
 library(trelliscope)
 library(lubridate)
 library(xts)
+library(tm)
 
 source("../../ebola_vis/ts.r")
 source("../../ebola_vis/panels.r")
@@ -13,76 +14,65 @@ source("../../ebola_vis/panels.r")
 # 3. Create histograms by month for each of them.
 # 4. Define the text analysis.
 
-file_contents = scan("../data/g77_statements.csv", what=character(), sep="\n")
-x = dstrsplit(file_contents, col_types=rep("character", 4), sep=",")
-names(x) = c("type", "url", "date", "text")
+# Make the g77 data.
+g77_fh = file("../data/g77_statements.csv", "r")
+g77_data = dstrsplit(readLines(g77_fh), col_types=rep("character", 4), sep=",")
+names(g77_data) = c("type", "date", "url", "text")
+g77_data$date = format(strptime(g77_data$date, "%m-%d-%Y"), "%Y-%m-%d")
 
 # The url is not quite right in url http://www.g77.org/Speeches/0207006.htm.
 # Confirm row 607 
-bad_date_rows = grep("\\d{7}", x$url)
+bad_date_rows = grep("\\d{7}", g77_data$url)
 if (length(bad_date_rows) > 0) {
   cat("Bad dates at row(s):", paste(bad_date_rows), "\n")
-}
-if (length(bad_date_rows) == 1 && bad_date_rows == 607) {
-  x$date[607] = "02-07-2006"
-} else {
-  error("Bad date code needs to be updated")
+  g77_data = g77_data[-bad_date_rows,]
 }
 
-x$year = year(strptime(x$date, "%m-%d-%Y", tz="EST"))
-
-vdbConn("g77", name="G77 Text Visualization", autoYes=TRUE)
-#x_by_year = divide(x, by="year", update=TRUE)
-
-x_year_vol = foreach(y=unique(x$year), .combine=rbind) %do% {
-  data.frame(year=y, count=nrow(x[x$year == y,]))
+# Make the UN data.
+un_types = c("economic-and-social-council", "secretary-general",
+             "security-council", "general-assembly")
+un_files_with_path = foreach(un_type=un_types, .combine=c) %do% {
+  file.path("../data", paste(un_types, "csv", sep='.'))
 }
 
-x_date = xts(rep(1, length(x$date)), 
-             order.by=strptime(x$date, "%m-%d-%Y"))
-xd = apply.monthly(x_date, length)
-xdt = time(xd)
-xmv = as.data.frame(xd)
-#xmv$year_month = year(xdt) + (month(xdt)-1)/12
-xmv$year_month = xdt
-xmv= as.data.frame(xmv)
-names(xmv)[1] = "count"
-xmv$year_month = as.character(xmv$year_month)
-mPlot(y='count', x='year_month', data=xmv, type="Line")
-
-x_text_date = xts(x$text,
-             order.by=strptime(x$date, "%m-%d-%Y"), unique=FALSE)
-ep = endpoints(x_text_date, on="months")
-xtd = period.apply(x_text_date, INDEX=ep,
-  FUN=function(x) sum(nchar(as.character(x)))/sum(length(as.character(x))))
-xtdt = time(xtd)
-xtmv = as.data.frame(xtd)
-xtmv$year_month = xtdt
-xtmv= as.data.frame(xtmv)
-names(xtmv)[1] = "count"
-xtmv$year_month = as.character(xtmv$year_month)
-mPlot(y='count', x='year_month', data=xtmv, type="Line")
-
-x_year_vol = x_year_vol[order(x_year_vol$year),]
-x_year_vol$all = factor(1)
-
-time_hist = function(form, group=NULL) {
-  form = form
-  group = group
-  function(x) {
-    if (!is.null(group))
-      ret = nPlot(form, group=group, data=x, type='multiBarChart')
-    else
-      ret = nPlot(form, data=x, type='multiBarChart')
-    ret
-  }
+un_data = foreach (un_file=un_files_with_path, type=un_types, 
+  .combine=rbind) %do% {
+  fh = file(un_file, "r")
+  x = dstrsplit(readLines(fh), col_types=rep("character", 3), sep=",")
+  close(fh)
+  names(x) = c("date", "url", "text")
+  x$type = type
+  x
 }
 
-x_year_vol_by_all = divide(x_year_vol, by="all", update=TRUE)
-makeDisplay(x_year_vol_by_all,
-            name="yearly_volume",
-            group="G77",
-            width=350, height=200,
-            desc="Statement and Speech Volume by Year",
-            panelFn= time_hist(count ~ year))
+x = rbind(un_data, g77_data)
+x$type[x$type == "speech" | x$type == "statement"] = "G77"
 
+x$year = year(strptime(x$date, format="%Y-%m-%d"))
+x$month = month(strptime(x$date, format="%Y-%m-%d"))
+
+x = x[x$year >= 2010,]
+
+x$year.month = paste(x$year, sprintf("%02d", x$month), sep='.')
+x$nchar = nchar(x$text)
+
+# Get the stemmed words.
+corpus = Corpus(VectorSource(x$text))
+corpus = tm_map(corpus, content_transformer(tolower))
+ 
+corpus = tm_map(corpus, content_transformer(removePunctuation))
+corpus = tm_map(corpus, content_transformer(removeWords), stopwords("english"))
+corpus = tm_map(corpus, content_transformer(removeNumbers))
+corpus = tm_map(corpus, stemDocument)
+corpus = tm_map(corpus, content_transformer(stripWhitespace))
+x$stems = unlist(Map(function(x) x$content, corpus))
+#tdm = TermDocumentMatrix(corpus)
+
+shorten_names = function(n) {
+  n[n == "economic-and-social-council"] = "easc"
+  n[n == "secretary-general"] = "sg"
+  n[n == "security-council"] = "sc"
+  n[n == "general-assembly"] = "easc"
+}
+
+source("volume.r")
