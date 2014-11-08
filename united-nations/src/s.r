@@ -79,5 +79,9 @@ shorten_names = function(n) {
   n[n == "general-assembly"] = "easc"
 }
 
+create_html_caption = function(date_string) {
+  sprintf("<b>%s</b><table>", date_string)
+}
+
 source("volume.r")
 source("novelty.r")

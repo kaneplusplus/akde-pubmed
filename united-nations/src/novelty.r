@@ -32,7 +32,7 @@ year_novelties = foreach(type = unique(y$type), .combine=rbind) %dopar% {
 }
 
 year_novelties = year_novelties[order(year_novelties$year),]
-nPlot(novelty ~ year, data=year_novelties, group="type", type="multiBarChart")
+#nPlot(novelty ~ year, data=year_novelties, group="type", type="multiBarChart")
 
 nby = function(x) {
   nPlot(novelty ~ year, data=x, group="type", type="multiBarChart")
@@ -82,7 +82,7 @@ zero_year_month_counts = foreach(type=unique(y$type), .combine=rbind) %do% {
   ret = NULL
   if (length(missing_year_months > 0)) {
     ret = data.frame(year.month = missing_year_months, 
-                     novelty=0.1, type=type)
+                     novelty=0.1, type=type, text_diff="")
   }
   ret
 }
@@ -142,7 +142,6 @@ novelty_by_month_cogs = function(x) {
 month_novelties$ym_copy = month_novelties$year.month
 novelty_by_month = divide(month_novelties, by="ym_copy", update=TRUE)
 
-
 makeDisplay(novelty_by_month,
             name="novelty_by_month",
             group="Monthly",
@@ -152,4 +151,46 @@ makeDisplay(novelty_by_month,
             cogFn=novelty_by_month_cogs)
 
 # Cross sectional novelties.
-#xmonth_novelties = foreach (i=1:length(year_months
+tn = unique(y$type)
+xmonth_novelties = foreach (ym=year_months, .combine=rbind) %do% {
+  ns = foreach(type=tn, .combine=c) %do% {
+    sw = paste(y$stems[y$year.month == ym & y$type == type], collapse=" ")
+    if (!length(sw)) sw=""
+    sw
+  }
+  c1 = text_novelty(ns[1], paste(ns[2], ns[3], collapse=" "))
+  c2 = text_novelty(ns[2], paste(ns[1], ns[3], collapse=" "))
+  c3 = text_novelty(ns[3], paste(ns[1], ns[2], collapse=" "))
+  cs = c(c1, c2, c3)
+  if (any(!is.finite(cs)))
+    cs = rep(0, 3)
+  ret = data.frame(list(cs, tn, rep(ym, 3)))
+  names(ret) = c("novelty", "type", "year.month")
+  ret
+}
+
+xnbym = function(x) {
+  nPlot(novelty ~ year.month, data=x, group="type", 
+        type="multiBarChart")
+}
+
+xmonth_novelties$all = factor(1)
+xmonth_novelties_all = divide(xmonth_novelties, by="all", update=TRUE)
+
+makeDisplay(xmonth_novelties_all,
+            name="yearly_cross_sectional_novelty",
+            group="Year Cross-Sectional",
+            width=350, height=200,
+            desc="Statement Novelty by Year",
+            panelFn= xnbym)
+
+xmonth_novelties$ym_copy = xmonth_novelties$year.month
+xmonth_novelty_by_month = divide(xmonth_novelties, by="ym_copy", update=TRUE)
+makeDisplay(xmonth_novelty_by_month,
+            name="monthly_cross_sectional_novelty",
+            group="Month Cross-Sectional",
+            width=350, height=200,
+            desc="Statement Novelty by Month",
+            panelFn= xnbym,
+            cogFn=novelty_by_month_cogs)
+
