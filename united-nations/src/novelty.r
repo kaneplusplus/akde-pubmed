@@ -8,6 +8,12 @@ text_novelty = function(x1, x0) {
   length(setdiff(t1, t0)) / length(t1) * 100
 }
 
+text_diff = function(x1, x0) {
+  t1 = unlist(strsplit(x1, " "))
+  t0 = unlist(strsplit(x0, " "))
+  paste(setdiff(t1, t0), collapse=" ")
+}
+
 y = x[x$type != 'secretary-general' & x$type != 'general-assembly',]
 
 year_novelties = foreach(type = unique(y$type), .combine=rbind) %dopar% {
@@ -43,18 +49,25 @@ makeDisplay(novelty_by_year_all,
             panelFn= nby)
 
 year_months = sort(unique(y$year.month))
-month_novelties = foreach(type = unique(y$type), .combine=rbind) %dopar% {
-  ret = foreach (i=2:length(year_months), .combine=rbind) %do% {
-    y0 = paste(y$stems[y$type == type & y$year.month == year_months[i-1]],
+month_novelties = foreach(type = unique(y$type), .combine=rbind) %do% {
+  ret = foreach (i=3:length(year_months), .combine=rbind) %do% {
+    print(type)
+    print(i)
+    y0 = paste(y$stems[y$type == type & 
+                       (y$year.month==year_months[i-1] | 
+                        y$year.month==year_months[i-2])],
                collapse=" ")
     y1 = paste(y$stems[y$type == type & y$year.month == year_months[i]],
                collapse=" ")
     ret = NULL
     if (!(y0 == "" || y1 == "")) {
       novelty = text_novelty(y1, y0)
-      ret = data.frame(novelty=novelty, year.month=year_months[i])
+      word_diff = text_diff(y1, y0)
+      ret = data.frame(novelty=novelty, year.month=year_months[i], 
+                       text_diff=word_diff)
     } else {
-      ret = data.frame(novelty = 0.1, year.month=year_months[i])
+      ret = data.frame(novelty = 0.1, year.month=year_months[i],
+                       text_diff="")
     }
     ret
   }
@@ -86,8 +99,15 @@ month_novelties = month_novelties[order(month_novelties$type),]
 month_novelties = month_novelties[order(month_novelties$year.month),]
 row.names(month_novelties) = NULL
 
-nbym = function(x) {
-  nPlot(novelty ~ year.month, data=x, group="type", type="multiBarChart")
+nbym_gen = function(xlim=NULL, ylim=NULL) {
+  function(x) {
+    ret = nPlot(novelty~year.month, data=x, group="type", type="multiBarChart")
+    if (!is.null(xlim))
+      ret$chart(forceX = xlim)
+    if (!is.null(ylim))
+      ret$chart(forceY = ylim)
+    ret
+  }
 }
 
 month_novelties$all = factor(1)
@@ -97,16 +117,39 @@ makeDisplay(novelty_by_month_all,
             group="Yearly",
             width=350, height=200,
             desc="Media Novelty by Month",
-            panelFn= nbym)
+            panelFn= nbym_gen())
 
 # TODO: Add cognostics.
+
+novelty_by_month_cogs = function(x) {
+  easn = sum(x$novelty[x$type == "economic-and-social-council"])
+  if (!length(easn))
+    easn=0
+  scn = sum(x$novelty[x$type == "security-council"])
+  if (!length(scn))
+    scn=0
+  g77n = sum(x$novelty[x$type == "G77"])
+  if (!length(g77n))
+    g77n=0
+  list(
+    econ_and_social_nov=cog(easn, desc="Economic and social council novelty"),
+    security_council_nov=cog(scn, desc="Security council novelty"),
+    g77=cog(g77n, desc="G77 novelty")
+  )
+}
+
+
 month_novelties$ym_copy = month_novelties$year.month
 novelty_by_month = divide(month_novelties, by="ym_copy", update=TRUE)
+
+
 makeDisplay(novelty_by_month,
             name="novelty_by_month",
             group="Monthly",
-            width=350, height=200,
+            width=200, height=100,
             desc="Media Novelty by Month",
-            panelFn= nbym)
+            panelFn= nbym_gen(ylim=c(0, ceiling(month_novelties$novelty))),
+            cogFn=novelty_by_month_cogs)
 
-
+# Cross sectional novelties.
+#xmonth_novelties = foreach (i=1:length(year_months

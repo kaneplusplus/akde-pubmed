@@ -56,6 +56,10 @@ x = x[x$year >= 2010,]
 x$year.month = paste(x$year, sprintf("%02d", x$month), sep='.')
 x$nchar = nchar(x$text)
 
+x = x[-grep("Monsieur", x$text),]
+x = x[-grep("Madame", x$text),]
+x = x[-grep("gracias", x$text),]
+
 # Get the stemmed words.
 corpus = Corpus(VectorSource(x$text))
 corpus = tm_map(corpus, content_transformer(tolower))
