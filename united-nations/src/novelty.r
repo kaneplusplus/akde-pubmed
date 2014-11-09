@@ -43,16 +43,14 @@ novelty_by_year_all = divide(year_novelties, by="all", update=TRUE)
 
 makeDisplay(novelty_by_year_all,
             name="novelty_by_year",
-            group="Yearly",
+            group="All Longitudinal",
             width=350, height=200,
-            desc="Media Novelty by Year",
+            desc="Announcement Novelty by Year",
             panelFn= nby)
 
 year_months = sort(unique(y$year.month))
 month_novelties = foreach(type = unique(y$type), .combine=rbind) %do% {
   ret = foreach (i=3:length(year_months), .combine=rbind) %do% {
-    print(type)
-    print(i)
     y0 = paste(y$stems[y$type == type & 
                        (y$year.month==year_months[i-1] | 
                         y$year.month==year_months[i-2])],
@@ -114,12 +112,10 @@ month_novelties$all = factor(1)
 novelty_by_month_all = divide(month_novelties, by="all", update=TRUE)
 makeDisplay(novelty_by_month_all,
             name="novelty_by_month",
-            group="Yearly",
+            group="Year Longitudinal",
             width=350, height=200,
-            desc="Media Novelty by Month",
+            desc="Announcement Novelty by Month",
             panelFn= nbym_gen())
-
-# TODO: Add cognostics.
 
 novelty_by_month_cogs = function(x) {
   easn = sum(x$novelty[x$type == "economic-and-social-council"])
@@ -144,9 +140,9 @@ novelty_by_month = divide(month_novelties, by="ym_copy", update=TRUE)
 
 makeDisplay(novelty_by_month,
             name="novelty_by_month",
-            group="Monthly",
+            group="Month Longitudinal",
             width=200, height=100,
-            desc="Media Novelty by Month",
+            desc="Announcement Novelty",
             panelFn= nbym_gen(ylim=c(0, ceiling(month_novelties$novelty))),
             cogFn=novelty_by_month_cogs)
 
@@ -179,9 +175,9 @@ xmonth_novelties_all = divide(xmonth_novelties, by="all", update=TRUE)
 
 makeDisplay(xmonth_novelties_all,
             name="yearly_cross_sectional_novelty",
-            group="Year Cross-Sectional",
+            group="All Cross-Sectional",
             width=350, height=200,
-            desc="Statement Novelty by Year",
+            desc="Statement Novelty by Month",
             panelFn= xnbym)
 
 xmonth_novelties$ym_copy = xmonth_novelties$year.month

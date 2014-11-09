@@ -49,17 +49,17 @@ total_chars_by_year_all = divide(total_chars_by_year, by="all", update=TRUE)
 vdbConn("united-nations-db", name="UN/G77 Text Visualization", autoYes=TRUE)
 
 makeDisplay(count_by_year_all,
-            name="yearly_volume",
-            group="Yearly",
+            name="yearly_announcement_volume",
+            group="All Longitudinal",
             width=350, height=200,
-            desc="Media Volume by Year",
+            desc="Yearly Announcement Volume",
             panelFn= cbya)
 
 makeDisplay(total_chars_by_year_all,
             name="yearly_char_volume",
-            group="Yearly",
+            group="All Longitudinal",
             width=350, height=200,
-            desc="Character Volume by Year",
+            desc="Yearly Character Volume",
             panelFn= cbya)
 
 count_by_month_year = foreach(t=unique(x$type), .combine=rbind) %do% {
@@ -96,9 +96,9 @@ cbym = function(x) {
 
 makeDisplay(count_by_month_year_all,
             name="year_and_month_volume",
-            group="Yearly",
+            group="All Longitudinal",
             width=350, height=200,
-            desc="Media Volume by Month and Year",
+            desc="Monthly Announcement Volume",
             panelFn= cbym)
         
 chars_by_month_year = foreach(t=unique(x$type), .combine=rbind) %do% {
@@ -120,8 +120,8 @@ chars_by_month_year_all = divide(chars_by_month_year, by="all", update=TRUE)
 
 makeDisplay(chars_by_month_year_all,
             name="monthly_char_volume",
-            group="Yearly",
+            group="All Longitudinal",
             width=350, height=200,
-            desc="Character Volume by Month",
+            desc="Montly Character Volume",
             panelFn= cbym)
           

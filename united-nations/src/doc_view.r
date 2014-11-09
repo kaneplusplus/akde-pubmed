@@ -111,8 +111,8 @@ scatter_plot_with_url = function(data, x_name="x", y_name="y", by=NULL, xlab="",
 }
 
 pc_all_docs = project_into_document_space(y$stems)
-y$PC1 = pc_all_docs[,1] - mean(pc_all_docs[,1])
-y$PC2 = pc_all_docs[,2] - mean(pc_all_docs[,2])
+y$PC1 = pc_all_docs[,1] 
+y$PC2 = pc_all_docs[,2]
 str = paste("<table>",
             "<tr><td align='left'><b>Type:</b></td><td>%s</td></tr>",
             "<td align='left'><b>Date:</b></td><td>%s</td></tr></tr></table>")
@@ -123,18 +123,115 @@ y$PC2 = ypcs[,2]
       
 #scatter_plot_with_url(y, "PC1", "PC2")
 
-spwu = function(x) {
-  scatter_plot_with_url(x, "PC1", "PC2", point_radius=2)
+spwu_gen =function(point_radius=5) {
+  function(x) {
+    x$PC1 = x$PC1 - mean(x$PC1)
+    x$PC2 = x$PC2 - mean(x$PC2)
+    scatter_plot_with_url(x, "PC1", "PC2", point_radius=5)
+  }
 }
+
+spwu = spwu_gen()
 
 y$all = as.factor(1)
 y_all = divide(y, by="all", update=TRUE)
 
 makeDisplay(y_all,
             name="all_announcements",
-            group="Year",
+            group="All",
             width=350, height=200,
-            desc="Articles by Year in the Document Space",
-            panelFn= nby)
+            desc="All Articles in the Document Space",
+            panelFn= spwu)
 
+# Document clustering quarterly.
+year_months = sort(unique(y$year.month))
+y_quarter = foreach(ymi = 3:length(year_months), .combine=rbind) %do% {
+  ym = year_months[(ymi-2):ymi]
+  ys = y[y$year.month %in% ym,]
+  yspcs = project_into_document_space(ys$stems)
+  ys$PC1 = yspcs[,1]
+  ys$PC2 = yspcs[,2]
+  ys$quarter = ym[3]
+  ys$novelty = foreach(i=1:nrow(ys), .combine=c) %do% {
+    ret = month_novelties$novelty[
+      month_novelties$year.month == as.numeric(ys$year.month[i]) &
+      month_novelties$type == ys$type[i]]
+    if(!length(ret)) ret = 0
+    ret
+  }
+#  dists = sqrt(ys$PC1^2 + ys$PC2^2)
+#  max_dists = foreach(type = unique(ys$types), .combine=c) %do% {
+#    dists = sqrt(
+#  }
+  ys
+}
 
+novelty_cog = function(x) {
+  easn = sum(x$novelty[x$type == "economic-and-social-council"][1])
+  if (!length(easn))
+    easn=0
+  scn = sum(x$novelty[x$type == "security-council"][1])
+  if (!length(scn))
+    scn=0
+  g77n = sum(x$novelty[x$type == "G77"][1])
+  if (!length(g77n))
+    g77n=0
+  dists = sqrt(x$PC1^2 + x$PC2^2)
+  ss = split(1:nrow(x), x$type)
+  maxs = Map(function(s) max(dists[s]), ss)
+  g77_max_dist = maxs$G77
+  if (is.null(g77_max_dist)) g77_max_dist=0
+  sc_max_dist = maxs$`security-council`
+  if (is.null(sc_max_dist)) sc_max_dist=0
+  easn_max_dist = maxs$`economic-and-social-council`
+  if (is.null(easn_max_dist)) easn_max_dist=0
+  list(
+    econ_and_social_nov=cog(easn, desc="Economic and social council novelty"),
+    security_council_nov=cog(scn, desc="Security council novelty"),
+    g77=cog(g77n, desc="G77 novelty"),
+    easn_max_dist=cog(easn_max_dist, desc="Max distance for EASCN"),
+    sc_max_dist=cog(sc_max_dist, desc="Max distance for SC"),
+    g77_max_dist=cog(g77_max_dist, desc="Max distance for G77")
+  )
+}
+
+y_by_quarter = divide(y_quarter, by="quarter", update=TRUE)
+makeDisplay(y_by_quarter,
+            name="quarter_announcements",
+            group="Quarter",
+            width=350, height=200,
+            desc="Articles the Document Space",
+            panelFn= spwu,
+            cogFn=novelty_cog)
+
+y_month= foreach(ymi = 1:length(year_months), .combine=rbind) %do% {
+  ym = year_months[ymi]
+  ys = y[y$year.month %in% ym,]
+  yspcs = project_into_document_space(ys$stems)
+  ys$PC1 = yspcs[,1]
+  ys$PC2 = yspcs[,2]
+  ys$month = ym[3]
+  ys$novelty = foreach(i=1:nrow(ys), .combine=c) %do% {
+    ret = xmonth_novelties$novelty[
+      xmonth_novelties$year.month == as.numeric(ys$year.month[i]) &
+      xmonth_novelties$type == ys$type[i]]
+    if(!length(ret)) ret = 0
+    ret
+  }
+  ys
+}
+
+y_month$ym_copy = factor(y_month$year.month)
+
+y_by_month = divide(y_month[,c("date", "url", "html_caption", "type", "PC1", 
+                               "PC2", "ym_copy", "novelty")], by="ym_copy", 
+                    update=TRUE)
+
+makeDisplay(y_by_month,
+            name="monthly_announcements",
+            group="Month",
+            width=350, height=200,
+            desc="Articles the Document Space",
+            panelFn=spwu_gen(10),
+            cogFn=novelty_cog)
+        

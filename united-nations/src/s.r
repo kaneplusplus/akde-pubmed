@@ -2,7 +2,6 @@ library(iotools)
 library(datadr)
 library(trelliscope)
 library(lubridate)
-library(xts)
 library(tm)
 
 source("../../ebola_vis/ts.r")
@@ -83,5 +82,6 @@ create_html_caption = function(date_string) {
   sprintf("<b>%s</b><table>", date_string)
 }
 
-source("volume.r")
-source("novelty.r")
+source("volume.r", echo=TRUE)
+source("novelty.r", echo=TRUE)
+source("doc_view.r", echo=TRUE)
