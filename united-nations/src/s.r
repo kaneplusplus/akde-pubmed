@@ -58,6 +58,7 @@ x$nchar = nchar(x$text)
 x = x[-grep("Monsieur", x$text),]
 x = x[-grep("Madame", x$text),]
 x = x[-grep("gracias", x$text),]
+x = x[-grep("Presidente", x$text),]
 
 # Get the stemmed words.
 corpus = Corpus(VectorSource(x$text))

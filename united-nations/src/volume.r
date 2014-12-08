@@ -52,7 +52,7 @@ makeDisplay(count_by_year_all,
             name="yearly_announcement_volume",
             group="All Longitudinal",
             width=350, height=200,
-            desc="Yearly Announcement Volume",
+            desc="Yearly Statement Volume",
             panelFn= cbya)
 
 makeDisplay(total_chars_by_year_all,
@@ -72,18 +72,24 @@ count_by_month_year = foreach(t=unique(x$type), .combine=rbind) %do% {
   ret
 }
 
+uym = unique(x$year.month)
 zero_year_month_counts = foreach(type=unique(x$type), .combine=rbind) %do% {
-  xs = x[x$type == type,]
-  uym = unique(x$year.month)
-  missing_year_months = setdiff(uym, unique(xs$year.month))
-  ret = NULL
-  if (length(missing_year_months > 0)) {
-    ret = data.frame(year.month = missing_year_months, count=0.1, type=type)
+  ret = foreach(ym = uym, .combine=rbind) %do% {
+    xs = x[x$type == type & x$year.month == ym,]
+    ret = NULL
+    if (nrow(xs) == 0) {
+      ret = data.frame(year.month = ym, count=0.1)
+    }
   }
+  if (!is.null(ret))
+    ret$type = type
   ret
 }
 
+count_by_month_year = rbind(count_by_month_year, zero_year_month_counts)
+
 count_by_month_year$year.month = as.numeric(count_by_month_year$year.month)
+count_by_month_year = count_by_month_year[order(count_by_month_year$year.month),]
 count_by_month_year$all = factor(1)
 count_by_month_year_all = divide(count_by_month_year, by="all", update=TRUE)
 
@@ -98,7 +104,7 @@ makeDisplay(count_by_month_year_all,
             name="year_and_month_volume",
             group="All Longitudinal",
             width=350, height=200,
-            desc="Monthly Announcement Volume",
+            desc="Monthly Statement Volume",
             panelFn= cbym)
         
 chars_by_month_year = foreach(t=unique(x$type), .combine=rbind) %do% {

@@ -45,7 +45,7 @@ makeDisplay(novelty_by_year_all,
             name="novelty_by_year",
             group="All Longitudinal",
             width=350, height=200,
-            desc="Announcement Novelty by Year",
+            desc="Statment Novelty by Year",
             panelFn= nby)
 
 year_months = sort(unique(y$year.month))
@@ -114,7 +114,7 @@ makeDisplay(novelty_by_month_all,
             name="novelty_by_month",
             group="Year Longitudinal",
             width=350, height=200,
-            desc="Announcement Novelty by Month",
+            desc="Statement Novelty by Month",
             panelFn= nbym_gen())
 
 novelty_by_month_cogs = function(x) {
@@ -142,7 +142,7 @@ makeDisplay(novelty_by_month,
             name="novelty_by_month",
             group="Month Longitudinal",
             width=200, height=100,
-            desc="Announcement Novelty",
+            desc="Statement Novelty",
             panelFn= nbym_gen(ylim=c(0, ceiling(month_novelties$novelty))),
             cogFn=novelty_by_month_cogs)
 
