@@ -65,7 +65,7 @@ project_into_document_space.default <- function(x, components=1:2,
 project_into_document_space.character <- function(x, components=1:2,
   jitter=FALSE) {
   project_into_document_space.default(tfidf(text_to_tdm(x)), 
-    jitter=jitter)
+    components=components, jitter=jitter)
 }
 
 

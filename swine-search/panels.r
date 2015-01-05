@@ -75,7 +75,7 @@ scatter_plot_with_url = function(data, x_name="x", y_name="y", by=NULL, xlab="",
           click = "#! function() { window.open(this.options.url); } !#")),
       marker = list(
         symbol = "circle",
-        radius = 5
+        radius = 3
       )
     )
   )

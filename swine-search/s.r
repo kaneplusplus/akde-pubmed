@@ -56,9 +56,8 @@ proj_doc_panel_gen = function(color=NULL) {
   function(x) { 
     ret = NULL
     if (nrow(x) > 2) {
-      pd = project_into_document_space(x$title_and_abstract, components, 
-        jitter=TRUE)
-      components=1:2
+      pd = project_into_document_space(x$title_and_abstract, components=1:2, 
+        jitter=FALSE)
       x = cbind(x[rownames(pd),], as.matrix(pd))
       names(x)[tail(1:ncol(x), length(components))] = 
         paste("pc", components, sep="")
