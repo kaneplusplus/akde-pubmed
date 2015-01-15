@@ -13,42 +13,48 @@ name = "Database"
 
 registerDoSEQ()
 
-queries = c('(piglet (growth OR weight OR cognitive)) AND ("dietary supplement" OR supplementation) NOT obesity',
-'((((child OR infant) (growth OR weight OR cognitive)) AND ("dietary supplement" OR supplementation) AND ((developing country))) NOT obesity')
+#cat("Querying PubMed.\n")
+#df = create_pm_query_df(queries, label_name, labels, max_docs_per_query=500)
+#df[[label_name]][multiple_inds(df$id)] = "multiple"
+#df = df[!duplicated(df$id),]
+#df[[label_name]] = as.factor(df[[label_name]])
+#df$year = year(make_date_time(df$date_string, "years"))
+#df$month = month(make_date_time(df$date_string, "month"))
+#df$day = day(make_date_time(df$date_string, "day"))
 
-label_name = "species"
-labels = c("piglet", "child")
 
-cat("Querying PubMed.\n")
-df = create_pm_query_df(queries, label_name, labels, max_docs_per_query=500)
-df[[label_name]][multiple_inds(df$id)] = "multiple"
-df = df[!duplicated(df$id),]
-df[[label_name]] = as.factor(df[[label_name]])
-df$year = year(make_date_time(df$date_string, "years"))
-df$month = month(make_date_time(df$date_string, "month"))
-df$day = day(make_date_time(df$date_string, "day"))
+#TODO fix up author list.
 
-vdbConn("piglet_child_zoonosis", name="Piglet Child Zoonosis")
+df = read.csv("msr-data.csv", as.is=TRUE)
+df = df[sample.int(nrow(df), 1000),]
+rownames(df) = NULL
+df$short_title = clean_up_entries(df$title)
+df$title_and_abstract = paste(df$title, df$abstract)
+df$html_caption = create_html_caption(df$title, df$author, df$year, 
+                                      rep("MSR", nrow(df)))
+df$author = "some dude"
+df = df[,-1]
+
+vdbConn("memex_msr", name="Memex MSR", autoYes=TRUE)
 
 df$all = as.factor(1)
 df_by_all = divide(df, by="all", update=TRUE)
-df_by_label = divide(df, by=label_name, update=TRUE)
-df_by_journal = divide(df, by="journal", update=TRUE)
-df_by_publication_type = divide(df, by="publication_type", update=TRUE)
+#df_by_label = divide(df, by=label_name, update=TRUE)
+#df_by_journal = divide(df, by="journal", update=TRUE)
+#df_by_publication_type = divide(df, by="publication_type", update=TRUE)
 
 # Get rid of the bad years for dividing.
-bad_year_ind = which(is.na(df$year))
+#bad_year_ind = which(is.na(df$year))
 
 # Not sure why this dies.
-df_by_year = try({divide(df[-bad_year_ind,], 
-                         by="year", update=TRUE)}, silent=TRUE)
+#df_by_year = try({divide(df[-bad_year_ind,], 
+#                         by="year", update=TRUE)}, silent=TRUE)
 # and why the following works.
-if (inherits(df_by_year, "try-error")) {
-  warning('Divide on year failed. Resorting to the "pub_year" hack.')
-  df$pub_year = df$year
-  df_by_year = divide(df[-bad_year_ind,], by="pub_year", update=TRUE)
-}
-
+#if (inherits(df_by_year, "try-error")) {
+#  warning('Divide on year failed. Resorting to the "pub_year" hack.')
+#  df$pub_year = df$year
+#  df_by_year = divide(df[-bad_year_ind,], by="pub_year", update=TRUE)
+#}
 
 proj_doc_panel_gen = function(color=NULL, components=2:3) {
   color=color
@@ -78,6 +84,9 @@ proj_doc_panel_gen = function(color=NULL, components=2:3) {
   }
 }
 
+# ANDY, the following should work.
+df_temp = df[1:200,c("url", "year", "html_caption", "title_and_abstract")]
+proj_doc_panel_gen(NULL, components=2:3)(df_temp)
 proj_doc_cog_fun = function(x) {
   list(num_documents=cog(nrow(x), desc="Number of documents"))
 }

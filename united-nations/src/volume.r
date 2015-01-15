@@ -50,14 +50,14 @@ vdbConn("united-nations-db", name="UN/G77 Text Visualization", autoYes=TRUE)
 
 makeDisplay(count_by_year_all,
             name="yearly_announcement_volume",
-            group="All Longitudinal",
+            group="all_longitudinal",
             width=350, height=200,
             desc="Yearly Statement Volume",
             panelFn= cbya)
 
 makeDisplay(total_chars_by_year_all,
             name="yearly_char_volume",
-            group="All Longitudinal",
+            group="all_longitudinal",
             width=350, height=200,
             desc="Yearly Character Volume",
             panelFn= cbya)
@@ -102,7 +102,7 @@ cbym = function(x) {
 
 makeDisplay(count_by_month_year_all,
             name="year_and_month_volume",
-            group="All Longitudinal",
+            group="all_longitudinal",
             width=350, height=200,
             desc="Monthly Statement Volume",
             panelFn= cbym)
@@ -126,7 +126,7 @@ chars_by_month_year_all = divide(chars_by_month_year, by="all", update=TRUE)
 
 makeDisplay(chars_by_month_year_all,
             name="monthly_char_volume",
-            group="All Longitudinal",
+            group="all_longitudinal",
             width=350, height=200,
             desc="Montly Character Volume",
             panelFn= cbym)

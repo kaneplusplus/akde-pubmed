@@ -43,7 +43,7 @@ novelty_by_year_all = divide(year_novelties, by="all", update=TRUE)
 
 makeDisplay(novelty_by_year_all,
             name="novelty_by_year",
-            group="All Longitudinal",
+            group="all_longitudinal",
             width=350, height=200,
             desc="Statment Novelty by Year",
             panelFn= nby)
@@ -112,7 +112,7 @@ month_novelties$all = factor(1)
 novelty_by_month_all = divide(month_novelties, by="all", update=TRUE)
 makeDisplay(novelty_by_month_all,
             name="novelty_by_month",
-            group="Year Longitudinal",
+            group="year_longitudinal",
             width=350, height=200,
             desc="Statement Novelty by Month",
             panelFn= nbym_gen())
@@ -140,7 +140,7 @@ novelty_by_month = divide(month_novelties, by="ym_copy", update=TRUE)
 
 makeDisplay(novelty_by_month,
             name="novelty_by_month",
-            group="Month Longitudinal",
+            group="month_longitudinal",
             width=200, height=100,
             desc="Statement Novelty",
             panelFn= nbym_gen(ylim=c(0, ceiling(month_novelties$novelty))),
@@ -175,7 +175,7 @@ xmonth_novelties_all = divide(xmonth_novelties, by="all", update=TRUE)
 
 makeDisplay(xmonth_novelties_all,
             name="yearly_cross_sectional_novelty",
-            group="All Cross-Sectional",
+            group="all_cross_sectional",
             width=350, height=200,
             desc="Statement Novelty by Month",
             panelFn= xnbym)
@@ -184,7 +184,7 @@ xmonth_novelties$ym_copy = xmonth_novelties$year.month
 xmonth_novelty_by_month = divide(xmonth_novelties, by="ym_copy", update=TRUE)
 makeDisplay(xmonth_novelty_by_month,
             name="monthly_cross_sectional_novelty",
-            group="Month Cross-Sectional",
+            group="month_cross_sectional",
             width=350, height=200,
             desc="Statement Novelty by Month",
             panelFn= xnbym,
