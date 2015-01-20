@@ -3,21 +3,36 @@ library(trelliscope)
 library(itertools)
 library(foreach)
 
-source("pm_query.r")
 source("doc_project.r")
 source("panels.r")
-source("ts.r")
 options("repos"="http://cran.rstudio.com/")
-if (!require(packrat)) {
-  cat("Installing packrat")
-  install.packages("packrat", repos="http://cran.rstudio.com/")
-  stop("packrat installed. Please restart R.")
-}
 
 db_path = "trelliscope_database"
 name = "Database"
 
 registerDoSEQ()
+
+clean_up_entry <- function(entry, max_lines=3, width=30) {
+  entry_vector <- strwrap(entry, width=width)
+#  entry_vector = enc2native(entry)
+  too_long = which(nchar(entry_vector) > width)
+  for(tl in too_long) {
+    s = substr(entry_vector[tl], 1, width)
+    entry_vector[tl] = paste(s, "...", sep="")
+  }
+  if (length(entry_vector) > max_lines) {
+    entry_vector <- entry_vector[1:max_lines]
+    entry_vector[max_lines] <- paste(entry_vector[max_lines], "...", sep="")
+  }
+  paste(entry_vector, collapse="<br>")
+}
+
+clean_up_entries <- function(entries, max_lines=3, width=30) {
+  foreach (entry=entries, .combine=c) %do% {
+    clean_up_entry(entry, max_lines, width)
+  }
+}
+
 
 # Note that while R can handle UTF-8 it looks like the tooltips in highcharts 
 # cannot.
