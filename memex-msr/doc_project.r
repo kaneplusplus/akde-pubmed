@@ -50,7 +50,6 @@ project_into_document_space = function(x, components, jitter=FALSE) {
 
 project_into_document_space.default <- function(x, components=1:2, 
   jitter=FALSE) {
-  cat("components are", components, "\n")
   pcp = irlba(x, nv=max(components), tol=1e-5, dU=rep(1,nrow(x)), 
               ds=1, dV=colMeans(x))
   ret = t(x) %*% pcp$u
@@ -67,7 +66,8 @@ project_into_document_space.default <- function(x, components=1:2,
 
 project_into_document_space.character <- function(x, components=1:2,
   jitter=FALSE) {
-  project_into_document_space.default(tfidf(text_to_tdm(x)), 
+  tdm = force(tfidf(text_to_tdm(x)))
+  project_into_document_space.default(tdm, 
     components=components, jitter=jitter)
 }
 

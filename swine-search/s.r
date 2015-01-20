@@ -61,6 +61,8 @@ proj_doc_panel_gen = function(color=NULL, components=2:3) {
       x = cbind(x[rownames(pd),], as.matrix(pd))
       names(x)[tail(1:ncol(x), length(components))] = 
         paste("pc", components, sep="")
+      x = x[,-which(names(x) == "title_and_abstract")]
+
       ret = scatter_plot_with_url(x, x_name="pc2", y_name="pc3", by=color)
     } else if (nrow(x) == 2) {
       x$pc1 = c(-0.5, 0.5)

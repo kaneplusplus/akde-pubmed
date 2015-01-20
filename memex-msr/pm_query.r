@@ -26,8 +26,14 @@ clean_up_date_string <- function(ds) {
 
 clean_up_entry <- function(entry, max_lines=3, width=30) {
   entry_vector <- strwrap(entry, width=width)
+#  entry_vector = enc2native(entry)
+  too_long = which(nchar(entry_vector) > width)
+  for(tl in too_long) {
+    s = substr(entry_vector[tl], 1, width)
+    entry_vector[tl] = paste(s, "...", sep="")
+  }
   if (length(entry_vector) > max_lines) {
-    title_vector <- entry_vector[1:max_lines]
+    entry_vector <- entry_vector[1:max_lines]
     entry_vector[max_lines] <- paste(entry_vector[max_lines], "...", sep="")
   }
   paste(entry_vector, collapse="<br>")
