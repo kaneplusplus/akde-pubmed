@@ -11,10 +11,8 @@ options("repos"="http://cran.rstudio.com/")
 if (!require(packrat)) {
   cat("Installing packrat")
   install.packages("packrat", repos="http://cran.rstudio.com/")
+  stop("packrat installed. Please restart R.")
 }
-library(packrat)
-
-packrat::init(".")
 
 db_path = "trelliscope_database"
 name = "Database"
