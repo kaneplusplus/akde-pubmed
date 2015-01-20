@@ -7,6 +7,14 @@ source("pm_query.r")
 source("doc_project.r")
 source("panels.r")
 source("ts.r")
+options("repos"="http://cran.rstudio.com/")
+if (!require(packrat)) {
+  cat("Installing packrat")
+  install.packages("packrat", repos="http://cran.rstudio.com/")
+}
+library(packrat)
+
+packrat::init(".")
 
 db_path = "trelliscope_database"
 name = "Database"
@@ -117,3 +125,4 @@ try(makeDisplay(df_by_year,
             panelFn = proj_doc_panel_gen(NULL, components=components),
             cogFn=proj_doc_cog_fun))
 
+view()
