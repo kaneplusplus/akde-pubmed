@@ -3,7 +3,6 @@ library(tm)
 library(Matrix)
 library(irlba)
 
-source("pm_query.r")
 
 text_to_tdm = function(doc_vec, sparse=TRUE) {
   corpus = Corpus(VectorSource(doc_vec))

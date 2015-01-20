@@ -12,6 +12,23 @@ name = "Database"
 
 registerDoSEQ()
 
+clean_up_date_string <- function(ds) {
+  ret <- gsub("NULL", "", ds)
+  gsub("[ ]+", " ", ret)
+}
+
+create_html_caption <- function(doc_title, author, date, journal) {
+  str <- paste("<b>%s</b><table>",
+    "<tr><td align='left'><b>Author:</b></td><td>%s</td></tr>",
+    "<td align='left'><b>Date:</b></td><td>%s</td></tr>",
+    "<td align='left'><b>Journal:</b></td><td>%s</td></tr></table>")
+  sprintf(str,
+    clean_up_entries(doc_title, width=40),
+    clean_up_entries(author),
+    clean_up_date_string(date),
+    clean_up_entries(journal))
+}
+
 clean_up_entry <- function(entry, max_lines=3, width=30) {
   entry_vector <- strwrap(entry, width=width)
 #  entry_vector = enc2native(entry)
