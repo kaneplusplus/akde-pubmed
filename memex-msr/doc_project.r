@@ -2,7 +2,7 @@ library(foreach)
 library(tm)
 library(Matrix)
 library(irlba)
-
+library(SnowballC)
 
 text_to_tdm = function(doc_vec, sparse=TRUE) {
   corpus = Corpus(VectorSource(doc_vec))
